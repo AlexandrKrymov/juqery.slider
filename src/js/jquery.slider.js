@@ -4,6 +4,10 @@ function hslide() {
         interval: 3000,
         autoplay: false,
         timer: 0,
+        startTimer:0,
+        stopTimer:0,
+        pausedTime:0,
+        hoverCount:0,
         animateTimer:0,
         startTime:0,
         stopTime:0,
@@ -32,28 +36,34 @@ function hslide() {
         // console.log('hover');
         state.hover = true;
         if(state.focus){
+            state.hoverCount += 1;
             stopAutoplay();
         }
     },function (){
         // console.log('unHover');
         state.hover = false;
         if(state.focus){
-            startAutoplay(elements.slides,elements.dots,state.interval - (state.stopTime - state.startTime));
+            console.log(state.hoverCount);
+            if(state.hoverCount > 1){
+                state.pausedTime = new Date().getTime() - state.stopTimer;
+                startAutoplay(elements.slides,elements.dots,state.interval - (state.stopTime - state.startTime - state.pausedTime));
+            } else {
+                startAutoplay(elements.slides,elements.dots,state.interval - (state.stopTime - state.startTime));
+            }
         }
     });
 
-    elements.wrapper.on('switch-slide', function () {
-        console.log('Переключение слайда');
-        clearInterval(state.animateTimer);
-        dotAnimateStop();
-    });
+    // elements.wrapper.on('switch-slide', function () {
+    //     console.log('Переключение слайда');
+    //
+    // });
 
     elements.wrapper.on('stop-autoplay', function () {
-        clearInterval(state.animateTimer);
+        animationPause();
     });
 
     elements.wrapper.on('start-autoplay', function () {
-        dotAnimate(elements.dots.filter('.is-active'),3000);
+        animetionPlay();
     });
 
     window.onblur = function () {
@@ -107,6 +117,7 @@ function hslide() {
         });
         activate($dots.eq(+id));
         state.startTime = new Date().getTime();
+        state.hoverCount = 0;
         elements.wrapper.trigger('switch-slide');
     }
 
@@ -129,6 +140,7 @@ function hslide() {
     function startAutoplay($slides,$dots,interval) {
         console.log(interval);
         var id = nextSlide($slides);
+        state.startTimer = new Date().getTime();
         state.timer = setTimeout(function () {
             switchSlide(id,$slides,$dots);
             startAutoplay($slides,$dots,state.interval);
@@ -141,6 +153,7 @@ function hslide() {
 
     function stopAutoplay() {
         clearTimeout(state.timer);
+        state.stopTimer = new Date().getTime();
         state.stopTime = new Date().getTime();
         if(state.autoplay){
             state.autoplay = false;
@@ -150,7 +163,7 @@ function hslide() {
     
     function animetionPlay() {
         if(elements.dots.hasClass('animation-pause')){
-            console.log('play');
+            // console.log('play');
             elements.dots.removeClass('animation-pause');
         }
     }
@@ -158,7 +171,7 @@ function hslide() {
     function animationPause() {
         var $elem = elements.dots.filter('.is-active');
         if(!$elem.hasClass('animation-pause')){
-            console.log('pause');
+            // console.log('pause');
             $elem.addClass('animation-pause');
         }
     }
