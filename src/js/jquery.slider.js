@@ -4,8 +4,11 @@ function hslide() {
         interval: 3000,
         autoplay: false,
         timer: 0,
+        animateTimer:0,
         startTime:0,
-        stopTime:0
+        stopTime:0,
+        hover:false,
+        focus: true
     };
 
     var elements = {
@@ -26,17 +29,52 @@ function hslide() {
     });
 
     elements.wrapper.hover(function (){
-        stopAutoplay();
+        // console.log('hover');
+        state.hover = true;
+        if(state.focus){
+            stopAutoplay();
+        }
     },function (){
-        startAutoplay(elements.slides,elements.dots,state.interval - (state.stopTime - state.startTime));
+        // console.log('unHover');
+        state.hover = false;
+        if(state.focus){
+            startAutoplay(elements.slides,elements.dots,state.interval - (state.stopTime - state.startTime));
+        }
     });
+
+    elements.wrapper.on('switch-slide', function () {
+        console.log('Переключение слайда');
+        clearInterval(state.animateTimer);
+        dotAnimateStop();
+    });
+
+    elements.wrapper.on('stop-autoplay', function () {
+        clearInterval(state.animateTimer);
+    });
+
+    elements.wrapper.on('start-autoplay', function () {
+        dotAnimate(elements.dots.filter('.is-active'),3000);
+    });
+
+    window.onblur = function () {
+        console.log('blur');
+        state.focus = false;
+        stopAutoplay();
+    };
+    window.onfocus = function () {
+        console.log('focus');
+        state.focus = true;
+        if(!state.hover){
+            startAutoplay(elements.slides,elements.dots,state.interval - (state.stopTime - state.startTime));
+        }
+    };
 
     function init() {
 
         var $wrapper = elements.wrapper;
         var $slides = elements.slides;
         var dotsWrapperHtml = '<div class="hslide-dots"></div>';
-        var dotHtml = '<div class="hslide-dot"></div>';
+        var dotHtml = '<div class="hslide-dot"><div class="hslide-dot-inner"></div></div>';
         for(var i = 0; i < $slides.length; i++){
             $slides.eq(i).data('data-id', i);
         }
@@ -69,6 +107,7 @@ function hslide() {
         });
         activate($dots.eq(+id));
         state.startTime = new Date().getTime();
+        elements.wrapper.trigger('switch-slide');
     }
 
     function nextSlide($slides) {
@@ -97,6 +136,7 @@ function hslide() {
         if(!state.autoplay){
             state.autoplay = true;
         }
+        elements.wrapper.trigger('start-autoplay');
     }
 
     function stopAutoplay() {
@@ -105,5 +145,44 @@ function hslide() {
         if(state.autoplay){
             state.autoplay = false;
         }
+        elements.wrapper.trigger('stop-autoplay');
+    }
+    
+    function animetionPlay() {
+        if(elements.dots.hasClass('animation-pause')){
+            console.log('play');
+            elements.dots.removeClass('animation-pause');
+        }
+    }
+    
+    function animationPause() {
+        var $elem = elements.dots.filter('.is-active');
+        if(!$elem.hasClass('animation-pause')){
+            console.log('pause');
+            $elem.addClass('animation-pause');
+        }
+    }
+
+    function dotAnimate($elem,interval) {
+        var $innerElem = $elem.find('.hslide-dot-inner');
+        var newInterval = getInterval($elem,interval);
+        state.animateTimer = setInterval(function () {
+            animateDot($innerElem)
+        }, newInterval);
+    }
+
+    function getInterval($elem,interval) {
+        var width = $elem.outerWidth();
+        var newInterval = Math.floor(interval / width);
+        return newInterval;
+    }
+
+    function animateDot($elem) {
+        var newWidth = (+$elem.outerWidth() + 1) + 'px';
+        $elem.css('width',newWidth)
+    }
+
+    function dotAnimateStop() {
+        elements.dots.find('.hslide-dot-inner').css('width','');
     }
 }
